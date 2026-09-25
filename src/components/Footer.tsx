@@ -11,7 +11,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenSubscribe }) =
 
   return (
     <footer className="bg-slate-950 border-t border-slate-800 text-slate-400 text-xs">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-28 sm:pb-32">
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
           
@@ -136,9 +136,23 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenSubscribe }) =
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-8 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
-          <p>&copy; {currentYear} Hartley Tutoring &bull; Imraan Hartley. All rights reserved.</p>
-          <p className="flex items-center gap-1">
+        <div className="pt-8 border-t border-slate-900 flex flex-col md:flex-row items-center md:items-center justify-between gap-4 text-[11px] text-slate-500 lg:pr-72">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
+            <p>&copy; {currentYear} Hartley Tutoring &bull; Imraan Hartley. All rights reserved.</p>
+            <span className="hidden sm:inline text-slate-800">&bull;</span>
+            <p>
+              Created by{' '}
+              <a
+                href="https://tech.voyagequest.co.za/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-amber-400 hover:text-amber-300 font-semibold hover:underline inline-flex items-center gap-1 transition-colors"
+              >
+                Voyage Quest
+              </a>
+            </p>
+          </div>
+          <p className="text-slate-500 text-center md:text-right">
             Built with rigor for South African students &amp; scholars.
           </p>
         </div>
