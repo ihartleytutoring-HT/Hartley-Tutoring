@@ -1,0 +1,208 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Registered student or admin user profile",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["student", "admin"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "email", "role"]
+    },
+    "Admin": {
+      "title": "Admin Permission",
+      "description": "Pre-approved admin record allowing administrative operations",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "grantedAt": { "type": "string" }
+      },
+      "required": ["email"]
+    },
+    "Grade": {
+      "title": "Grade Level",
+      "description": "Schooling year grade or university tier",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "order": { "type": "number" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "Subject": {
+      "title": "Academic Subject",
+      "description": "Subject under a specific grade level",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "gradeId": { "type": "string" },
+        "name": { "type": "string" },
+        "icon": { "type": "string" },
+        "description": { "type": "string" },
+        "order": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "gradeId", "name"]
+    },
+    "Topic": {
+      "title": "Curriculum Topic",
+      "description": "Topic or module within a subject",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "gradeId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "order": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "gradeId", "subjectId", "title"]
+    },
+    "LessonItem": {
+      "title": "Lesson Content Item",
+      "description": "Videos, notes, or interactive quizzes with 100% pass criteria",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "topicId": { "type": "string" },
+        "gradeId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "title": { "type": "string" },
+        "type": { "type": "string", "enum": ["video", "notes", "quiz"] },
+        "videoUrl": { "type": "string" },
+        "videoDuration": { "type": "string" },
+        "notesContent": { "type": "string" },
+        "notesAttachmentUrl": { "type": "string" },
+        "passingScorePercent": { "type": "number" },
+        "order": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "topicId", "gradeId", "subjectId", "title", "type"]
+    },
+    "PackagePrice": {
+      "title": "Package Price Override",
+      "description": "Pricing package configuration for grade and subject combinations",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "gradeId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "month1": { "type": "number" },
+        "month3": { "type": "number" },
+        "month6": { "type": "number" },
+        "month12": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "month1", "month3", "month6", "month12"]
+    },
+    "Subscription": {
+      "title": "Student Subscription",
+      "description": "Enrolled subscription for a grade and subject with duration and status",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userName": { "type": "string" },
+        "gradeId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "durationMonths": { "type": "number" },
+        "priceZar": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "expired", "pending"] },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "gradeId", "subjectId", "durationMonths", "status"]
+    },
+    "UserProgress": {
+      "title": "Learning Progress Record",
+      "description": "Tracks video watched, notes completed, and quiz score passed at 100%",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "lessonItemId": { "type": "string" },
+        "topicId": { "type": "string" },
+        "gradeId": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "type": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "passed": { "type": "boolean" },
+        "score": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "lessonItemId", "completed"]
+    },
+    "Enquiry": {
+      "title": "Contact Enquiry",
+      "description": "Student or parent contact inquiry message",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "grade": { "type": "string" },
+        "subject": { "type": "string" },
+        "message": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "message"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile documents"
+    },
+    "/admins/{adminId}": {
+      "schema": "Admin",
+      "description": "Admin privileges document list"
+    },
+    "/grades/{gradeId}": {
+      "schema": "Grade",
+      "description": "Schooling year grades"
+    },
+    "/subjects/{subjectId}": {
+      "schema": "Subject",
+      "description": "Subjects associated with grades"
+    },
+    "/topics/{topicId}": {
+      "schema": "Topic",
+      "description": "Curriculum topics"
+    },
+    "/lessonItems/{lessonItemId}": {
+      "schema": "LessonItem",
+      "description": "Videos, notes, and interactive quizzes"
+    },
+    "/packagePrices/{packagePriceId}": {
+      "schema": "PackagePrice",
+      "description": "Pricing for grade + subject subscription packages"
+    },
+    "/subscriptions/{subscriptionId}": {
+      "schema": "Subscription",
+      "description": "Student active and past subscriptions"
+    },
+    "/userProgress/{progressId}": {
+      "schema": "UserProgress",
+      "description": "Student lesson completion and quiz passing history"
+    },
+    "/enquiries/{enquiryId}": {
+      "schema": "Enquiry",
+      "description": "Website visitor inquiries"
+    }
+  }
+}

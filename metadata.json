@@ -1,0 +1,6 @@
+{
+  "name": "Hartley Tutoring - Math & Science Online & In-Person Tutoring",
+  "description": "High school and university mathematics and physical science tutoring in Cape Town and online by Imraan Hartley. Interactive lessons, notes, past papers, and progress tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
