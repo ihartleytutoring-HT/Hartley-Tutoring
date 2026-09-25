@@ -8,7 +8,6 @@ import {
   Send,
   CheckCircle,
   Clock,
-  Sparkles,
   AlertCircle,
 } from 'lucide-react';
 
@@ -66,7 +65,6 @@ export const ContactSection: React.FC = () => {
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-4">
-            <Sparkles className="w-3.5 h-3.5" />
             <span>Get in Touch with Imraan Hartley</span>
           </div>
 

@@ -8,11 +8,12 @@ import {
   HelpCircle,
   Lock,
   ChevronRight,
-  Sparkles,
   Calculator,
   Atom,
   Clock,
   CheckCircle2,
+  ChevronDown,
+  GraduationCap,
 } from 'lucide-react';
 
 interface CurriculumBrowserProps {
@@ -125,21 +126,45 @@ export const CurriculumBrowser: React.FC<CurriculumBrowserProps> = ({ onSelectSu
           </p>
         </div>
 
-        {/* Grade Selection Tabs */}
-        <div className="flex items-center justify-start sm:justify-center overflow-x-auto pb-4 gap-2.5 no-scrollbar">
-          {grades.map((grade) => (
-            <button
-              key={grade.id}
-              onClick={() => setSelectedGradeId(grade.id)}
-              className={`px-5 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition-all cursor-pointer ${
-                selectedGradeId === grade.id
-                  ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/25 scale-105'
-                  : 'bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-800'
-              }`}
-            >
-              {grade.name}
-            </button>
-          ))}
+        {/* Grade Selection Controls: Dropdown & Tabs */}
+        <div className="flex flex-col items-center gap-4 mb-3">
+          
+          {/* Mobile & Quick Grade Dropdown */}
+          <div className="sm:hidden w-full max-w-xs">
+            <div className="relative">
+              <select
+                value={selectedGradeId}
+                onChange={(e) => setSelectedGradeId(e.target.value)}
+                className="w-full appearance-none pl-4 pr-10 py-3 rounded-2xl bg-slate-900 border border-slate-700 text-white font-bold text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 shadow-lg cursor-pointer"
+              >
+                {grades.map((grade) => (
+                  <option key={grade.id} value={grade.id} className="bg-slate-950 text-white py-1">
+                    {grade.name}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-amber-400">
+                <ChevronDown className="w-4 h-4" />
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Grade Selection Tabs */}
+          <div className="hidden sm:flex items-center justify-center flex-wrap gap-2.5">
+            {grades.map((grade) => (
+              <button
+                key={grade.id}
+                onClick={() => setSelectedGradeId(grade.id)}
+                className={`px-5 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition-all cursor-pointer ${
+                  selectedGradeId === grade.id
+                    ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/25 scale-105'
+                    : 'bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-800'
+                }`}
+              >
+                {grade.name}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Grade Description */}
@@ -328,7 +353,6 @@ export const CurriculumBrowser: React.FC<CurriculumBrowserProps> = ({ onSelectSu
                       onClick={() => onSelectSubscription(selectedGradeId, selectedSubjectId)}
                       className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shrink-0 cursor-pointer shadow-lg shadow-amber-500/20"
                     >
-                      <Sparkles className="w-4 h-4 text-slate-950" />
                       <span>Enroll in {activeSubject?.name || 'Subject'}</span>
                     </button>
                   </div>

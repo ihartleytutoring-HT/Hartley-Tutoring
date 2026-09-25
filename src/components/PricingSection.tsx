@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { PackagePrice } from '../types';
 import { getPackagePrice } from '../services/curriculumService';
-import { Check, Sparkles, Shield, Clock, Zap, ArrowRight } from 'lucide-react';
+import { Check, Shield, Clock, Zap, ArrowRight } from 'lucide-react';
 
 interface PricingSectionProps {
   onOpenSubscribe: (duration?: number) => void;
@@ -105,7 +105,6 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenSubscribe 
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase tracking-wider mb-4">
-            <Sparkles className="w-3.5 h-3.5" />
             <span>Transparent South African Pricing</span>
           </div>
 

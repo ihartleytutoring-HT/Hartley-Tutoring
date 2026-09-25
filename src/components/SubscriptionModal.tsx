@@ -2,12 +2,17 @@ import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { useAuth } from '../context/AuthContext';
 import { Grade, Subject, PackagePrice } from '../types';
-import { getGrades, getSubjects, getPackagePrice } from '../services/curriculumService';
+import {
+  getGrades,
+  getSubjects,
+  getPackagePrice,
+  DEFAULT_GRADES,
+  getDefaultSubjectsForGrade,
+} from '../services/curriculumService';
 import { createSubscription } from '../services/subscriptionService';
 import {
   X,
   Check,
-  Sparkles,
   ShieldCheck,
   CreditCard,
   Building,
@@ -19,6 +24,8 @@ import {
   Calculator,
   Atom,
   AlertCircle,
+  ChevronDown,
+  BookOpen,
 } from 'lucide-react';
 
 interface SubscriptionModalProps {
@@ -44,10 +51,14 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   const [step, setStep] = useState<number>(1);
 
   // Selections
-  const [grades, setGrades] = useState<Grade[]>([]);
-  const [selectedGradeId, setSelectedGradeId] = useState<string>(preSelectedGradeId || '');
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [selectedSubjectId, setSelectedSubjectId] = useState<string>(preSelectedSubjectId || '');
+  const initialGradeId = preSelectedGradeId || DEFAULT_GRADES[0].id;
+  const initialSubjects = getDefaultSubjectsForGrade(initialGradeId);
+  const initialSubjectId = preSelectedSubjectId || (initialSubjects[0]?.id || '');
+
+  const [grades, setGrades] = useState<Grade[]>(DEFAULT_GRADES);
+  const [selectedGradeId, setSelectedGradeId] = useState<string>(initialGradeId);
+  const [subjects, setSubjects] = useState<Subject[]>(initialSubjects);
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>(initialSubjectId);
   const [durationMonths, setDurationMonths] = useState<number>(preSelectedDuration || 1);
   const [pricing, setPricing] = useState<PackagePrice>({
     id: 'default',
@@ -68,43 +79,49 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   const [cardExpiry, setCardExpiry] = useState<string>('12/28');
   const [cardCvv, setCardCvv] = useState<string>('888');
 
-  // Load Grades
+  const handleGradeSelect = async (gradeId: string) => {
+    setSelectedGradeId(gradeId);
+    setErrorMsg('');
+    try {
+      const subs = await getSubjects(gradeId);
+      const finalSubs = subs && subs.length > 0 ? subs : getDefaultSubjectsForGrade(gradeId);
+      setSubjects(finalSubs);
+      if (finalSubs.length > 0) {
+        setSelectedSubjectId(finalSubs[0].id);
+      }
+    } catch {
+      const fallback = getDefaultSubjectsForGrade(gradeId);
+      setSubjects(fallback);
+      if (fallback.length > 0) {
+        setSelectedSubjectId(fallback[0].id);
+      }
+    }
+  };
+
+  // Load Grades and Subjects
   useEffect(() => {
     if (!isOpen) return;
     async function load() {
       try {
         const gList = await getGrades();
-        setGrades(gList);
-        if (preSelectedGradeId) {
-          setSelectedGradeId(preSelectedGradeId);
-        } else if (gList.length > 0 && !selectedGradeId) {
-          setSelectedGradeId(gList[0].id);
+        const activeGrades = gList && gList.length > 0 ? gList : DEFAULT_GRADES;
+        setGrades(activeGrades);
+        const targetGId = preSelectedGradeId || selectedGradeId || activeGrades[0].id;
+        setSelectedGradeId(targetGId);
+
+        const subs = await getSubjects(targetGId);
+        const activeSubs = subs && subs.length > 0 ? subs : getDefaultSubjectsForGrade(targetGId);
+        setSubjects(activeSubs);
+
+        if (!selectedSubjectId || !activeSubs.some((s) => s.id === selectedSubjectId)) {
+          setSelectedSubjectId(preSelectedSubjectId || activeSubs[0]?.id || '');
         }
       } catch (err) {
-        console.error('Error fetching grades:', err);
+        console.error('Error fetching grades in modal:', err);
       }
     }
     load();
-  }, [isOpen, preSelectedGradeId]);
-
-  // Load Subjects when Grade changes
-  useEffect(() => {
-    if (!selectedGradeId) return;
-    async function loadSubs() {
-      try {
-        const subs = await getSubjects(selectedGradeId);
-        setSubjects(subs);
-        if (preSelectedSubjectId && subs.some((s) => s.id === preSelectedSubjectId)) {
-          setSelectedSubjectId(preSelectedSubjectId);
-        } else if (subs.length > 0 && !selectedSubjectId) {
-          setSelectedSubjectId(subs[0].id);
-        }
-      } catch (err) {
-        console.error('Error fetching subjects:', err);
-      }
-    }
-    loadSubs();
-  }, [selectedGradeId, preSelectedSubjectId]);
+  }, [isOpen, preSelectedGradeId, preSelectedSubjectId]);
 
   // Load Dynamic Pricing for chosen Grade + Subject
   useEffect(() => {
@@ -142,13 +159,27 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
   };
 
   const handleNextStep = () => {
-    if (step === 1 && !selectedGradeId) {
-      setErrorMsg('Please select your grade first.');
-      return;
+    let effectiveGradeId = selectedGradeId;
+    if (step === 1) {
+      if (!effectiveGradeId) {
+        if (grades.length > 0) {
+          effectiveGradeId = grades[0].id;
+          handleGradeSelect(effectiveGradeId);
+        } else {
+          setErrorMsg('Please select your grade from the drop-down menu.');
+          return;
+        }
+      }
     }
-    if (step === 2 && !selectedSubjectId) {
-      setErrorMsg('Please select your subject.');
-      return;
+    if (step === 2) {
+      if (!selectedSubjectId) {
+        if (subjects.length > 0) {
+          setSelectedSubjectId(subjects[0].id);
+        } else {
+          setErrorMsg('Please select your subject.');
+          return;
+        }
+      }
     }
     setErrorMsg('');
     setStep((prev) => prev + 1);
@@ -300,33 +331,88 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
               {/* STEP 1: CHOOSE GRADE */}
               {step === 1 && (
                 <div>
-                  <h4 className="text-lg font-bold text-white mb-2">Step 1: Choose Your Schooling Grade</h4>
+                  <h4 className="text-lg font-bold text-white mb-1.5">Step 1: Choose Your Schooling Grade</h4>
                   <p className="text-xs text-slate-400 mb-6">
                     Select your current high school grade or university level for tailored syllabus alignment.
                   </p>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    {grades.map((grade) => (
-                      <button
-                        key={grade.id}
-                        onClick={() => setSelectedGradeId(grade.id)}
-                        className={`p-4 rounded-2xl text-left border transition-all cursor-pointer ${
-                          selectedGradeId === grade.id
-                            ? 'bg-amber-500/10 border-amber-500 text-amber-300 ring-1 ring-amber-500/50'
-                            : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 text-slate-300'
-                        }`}
+                  {/* PROMINENT DROP DOWN MENU FOR GRADE */}
+                  <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-slate-950 border-2 border-amber-500/50 shadow-xl shadow-amber-500/10 focus-within:border-amber-400 transition-all">
+                    <label
+                      htmlFor="grade-dropdown-selector"
+                      className="block text-xs font-extrabold uppercase tracking-wider text-amber-400 mb-2 flex items-center justify-between"
+                    >
+                      <span className="flex items-center gap-2">
+                        <GraduationCap className="w-4 h-4" />
+                        Choose Grade Level (Drop-down Menu)
+                      </span>
+                      <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                        Required
+                      </span>
+                    </label>
+
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-amber-400">
+                        <GraduationCap className="w-5 h-5" />
+                      </div>
+                      <select
+                        id="grade-dropdown-selector"
+                        value={selectedGradeId}
+                        onChange={(e) => handleGradeSelect(e.target.value)}
+                        className="w-full pl-11 pr-10 py-3.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm sm:text-base font-bold focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 appearance-none cursor-pointer hover:border-slate-600 transition-colors"
                       >
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-base text-white">{grade.name}</span>
-                          {selectedGradeId === grade.id && (
-                            <Check className="w-5 h-5 text-amber-400" />
+                        {grades.map((grade) => (
+                          <option key={grade.id} value={grade.id} className="bg-slate-900 text-white py-2">
+                            {grade.name} {grade.description ? `— ${grade.description}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-amber-400">
+                        <ChevronDown className="w-5 h-5" />
+                      </div>
+                    </div>
+
+                    <div className="mt-2.5 flex items-center justify-between text-xs">
+                      <span className="text-slate-400">
+                        Active Selection: <strong className="text-amber-300 font-bold">{currentGrade?.name || 'Grade 12 (Matric)'}</strong>
+                      </span>
+                      <span className="text-[11px] text-slate-500">Tap to expand options</span>
+                    </div>
+                  </div>
+
+                  {/* QUICK SELECTION CARDS */}
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      Or Select Grade Card Below:
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {grades.map((grade) => (
+                        <button
+                          key={grade.id}
+                          type="button"
+                          onClick={() => handleGradeSelect(grade.id)}
+                          className={`p-3.5 rounded-2xl text-left border transition-all cursor-pointer ${
+                            selectedGradeId === grade.id
+                              ? 'bg-amber-500/10 border-amber-500 text-amber-300 ring-1 ring-amber-500/50 shadow-lg shadow-amber-500/10'
+                              : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 text-slate-300'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-sm text-white">{grade.name}</span>
+                            {selectedGradeId === grade.id ? (
+                              <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center font-bold text-xs">
+                                ✓
+                              </span>
+                            ) : (
+                              <span className="w-4 h-4 rounded-full border border-slate-700" />
+                            )}
+                          </div>
+                          {grade.description && (
+                            <p className="text-[11px] text-slate-400 mt-1 line-clamp-1">{grade.description}</p>
                           )}
-                        </div>
-                        {grade.description && (
-                          <p className="text-xs text-slate-400 mt-1 line-clamp-2">{grade.description}</p>
-                        )}
-                      </button>
-                    ))}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
@@ -334,17 +420,70 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
               {/* STEP 2: CHOOSE SUBJECT */}
               {step === 2 && (
                 <div>
-                  <h4 className="text-lg font-bold text-white mb-2">Step 2: Choose Your Subject</h4>
+                  <h4 className="text-lg font-bold text-white mb-1.5">Step 2: Choose Your Subject</h4>
                   <p className="text-xs text-slate-400 mb-6">
-                    Enroll for Mathematics or Physical Sciences under <strong>{currentGrade?.name}</strong>.
+                    Enroll for Mathematics or Physical Sciences under <strong className="text-amber-400">{currentGrade?.name}</strong>.
                   </p>
+
+                  {/* DROP DOWN MENU FOR SUBJECT */}
+                  {subjects.length > 0 && (
+                    <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-slate-950 border-2 border-indigo-500/50 shadow-xl shadow-indigo-500/10 focus-within:border-indigo-400 transition-all">
+                      <label
+                        htmlFor="subject-dropdown-selector"
+                        className="block text-xs font-extrabold uppercase tracking-wider text-indigo-400 mb-2 flex items-center justify-between"
+                      >
+                        <span className="flex items-center gap-2">
+                          <BookOpen className="w-4 h-4" />
+                          Choose Subject (Drop-down Menu)
+                        </span>
+                        <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                          Required
+                        </span>
+                      </label>
+
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-indigo-400">
+                          <BookOpen className="w-5 h-5" />
+                        </div>
+                        <select
+                          id="subject-dropdown-selector"
+                          value={selectedSubjectId}
+                          onChange={(e) => {
+                            setSelectedSubjectId(e.target.value);
+                            setErrorMsg('');
+                          }}
+                          className="w-full pl-11 pr-10 py-3.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm sm:text-base font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none cursor-pointer hover:border-slate-600 transition-colors"
+                        >
+                          {subjects.map((sub) => (
+                            <option key={sub.id} value={sub.id} className="bg-slate-900 text-white py-2">
+                              {sub.name}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-indigo-400">
+                          <ChevronDown className="w-5 h-5" />
+                        </div>
+                      </div>
+
+                      <div className="mt-2.5 flex items-center justify-between text-xs">
+                        <span className="text-slate-400">
+                          Active Selection: <strong className="text-indigo-300 font-bold">{currentSubject?.name || 'Please choose a subject'}</strong>
+                        </span>
+                        <span className="text-[11px] text-slate-500">Tap to switch</span>
+                      </div>
+                    </div>
+                  )}
 
                   {subjects.length === 0 ? (
                     <div className="p-6 text-center text-slate-400 text-sm bg-slate-950 rounded-2xl">
                       No subjects found for this grade. Please select another grade.
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 gap-3.5">
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                        Or Select Subject Card Below:
+                      </p>
+                      <div className="grid grid-cols-1 gap-3">
                       {subjects.map((sub) => {
                         const isMath = sub.name.toLowerCase().includes('math');
                         return (
@@ -378,6 +517,7 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
                           </button>
                         );
                       })}
+                      </div>
                     </div>
                   )}
                 </div>

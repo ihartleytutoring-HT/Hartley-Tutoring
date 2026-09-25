@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Sparkles,
   ArrowRight,
   CheckCircle2,
   Play,
@@ -55,16 +54,6 @@ export const Hero: React.FC<HeroProps> = ({
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-amber-500/10 via-indigo-600/15 to-transparent rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        {/* Top Trust Badge */}
-        <div className="flex items-center justify-center mb-6">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/90 border border-slate-700/70 text-xs sm:text-sm text-slate-200 shadow-xl">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="font-semibold text-amber-400">Expert Guidance for Academic Success</span>
-            <span className="text-slate-500">|</span>
-            <span>UCT Mechatronics Engineering Graduate</span>
-          </div>
-        </div>
 
         {/* Hero Main Content: Two Columns on Large Screens */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
@@ -109,9 +98,8 @@ export const Hero: React.FC<HeroProps> = ({
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4">
               <button
                 onClick={onOpenSubscribe}
-                className="w-full sm:w-auto px-7 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 font-bold text-sm shadow-xl shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+                className="w-full sm:w-auto px-7 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 font-bold text-sm shadow-xl shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <Sparkles className="w-4 h-4 text-slate-950 fill-slate-950" />
                 <span>Subscribe (From R250/mo)</span>
                 <ArrowRight className="w-4 h-4 text-slate-950" />
               </button>

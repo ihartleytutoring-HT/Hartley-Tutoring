@@ -44,7 +44,6 @@ import {
   Users,
   Inbox,
   FolderTree,
-  Sparkles,
   ExternalLink,
   MessageCircle,
   Mail,
@@ -457,7 +456,6 @@ export const AdminPortal: React.FC = () => {
               disabled={loading}
               className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-amber-300 border border-slate-700 flex items-center gap-2 cursor-pointer shadow-md"
             >
-              <Sparkles className="w-4 h-4 text-amber-400" />
               <span>Restore Sample Curriculum</span>
             </button>
           </div>

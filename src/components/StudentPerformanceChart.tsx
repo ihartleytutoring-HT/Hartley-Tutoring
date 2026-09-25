@@ -11,7 +11,7 @@ import {
   ReferenceLine,
   Cell,
 } from 'recharts';
-import { Topic, LessonItem, UserProgress } from '../types';
+import { Topic, LessonItem, UserProgress, Grade } from '../types';
 import {
   TrendingUp,
   Award,
@@ -19,10 +19,11 @@ import {
   BookOpen,
   BarChart3,
   Target,
-  Sparkles,
   HelpCircle,
   Video,
   FileText,
+  ChevronDown,
+  GraduationCap,
 } from 'lucide-react';
 
 interface StudentPerformanceChartProps {
@@ -30,6 +31,10 @@ interface StudentPerformanceChartProps {
   allLessons: LessonItem[];
   progressMap: Record<string, UserProgress>;
   subjectName?: string;
+  gradeName?: string;
+  grades?: Grade[];
+  selectedGradeId?: string;
+  onSelectGrade?: (gradeId: string) => void;
   onSelectTopic?: (topicId: string) => void;
 }
 
@@ -38,6 +43,10 @@ export const StudentPerformanceChart: React.FC<StudentPerformanceChartProps> = (
   allLessons,
   progressMap,
   subjectName = 'Current Course',
+  gradeName,
+  grades,
+  selectedGradeId,
+  onSelectGrade,
   onSelectTopic,
 }) => {
   const [chartView, setChartView] = useState<'topics' | 'modalities'>('topics');
@@ -273,9 +282,38 @@ export const StudentPerformanceChart: React.FC<StudentPerformanceChartProps> = (
               Live Progress
             </span>
           </div>
-          <p className="text-xs text-slate-400">
-            Visual tracking of course completion percentages and quiz performance for <span className="text-slate-200 font-semibold">{subjectName}</span>.
-          </p>
+          <div className="flex flex-wrap items-center gap-3 mt-2">
+            <p className="text-xs text-slate-400">
+              Visual tracking of course completion percentages and quiz performance for{' '}
+              <span className="text-slate-200 font-semibold">{subjectName}</span>
+              {gradeName ? <span className="text-amber-400 font-semibold"> ({gradeName})</span> : ''}.
+            </p>
+
+            {/* Drop Down Menu to Choose Grade */}
+            {grades && grades.length > 0 && onSelectGrade && (
+              <div className="inline-flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-700 hover:border-amber-400/50 shadow-sm transition-colors">
+                <GraduationCap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <label htmlFor="chart-grade-select" className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
+                  Grade:
+                </label>
+                <div className="relative">
+                  <select
+                    id="chart-grade-select"
+                    value={selectedGradeId}
+                    onChange={(e) => onSelectGrade(e.target.value)}
+                    className="appearance-none bg-transparent pr-5 text-xs font-bold text-amber-400 hover:text-amber-300 focus:outline-none cursor-pointer"
+                  >
+                    {grades.map((g) => (
+                      <option key={g.id} value={g.id} className="bg-slate-950 text-white font-medium py-1">
+                        {g.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-3 h-3 text-amber-400 absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* View Switcher Tabs */}
@@ -372,7 +410,7 @@ export const StudentPerformanceChart: React.FC<StudentPerformanceChartProps> = (
         <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/80">
           <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
             <span>Curriculum Pace</span>
-            <Sparkles className="w-4 h-4 text-indigo-400" />
+            <TrendingUp className="w-4 h-4 text-indigo-400" />
           </div>
           <div className="flex items-baseline gap-1.5">
             <span className="text-sm font-extrabold text-indigo-300">

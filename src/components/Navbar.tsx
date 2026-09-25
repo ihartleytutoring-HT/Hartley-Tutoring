@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   GraduationCap,
-  Sparkles,
   BookOpen,
   CreditCard,
   Phone,
@@ -16,7 +15,7 @@ import {
 } from 'lucide-react';
 
 interface NavbarProps {
-  onNavigate: (view: 'home' | 'curriculum' | 'pricing' | 'about' | 'contact' | 'student-portal' | 'admin-portal') => void;
+  onNavigate: (view: 'home' | 'services' | 'curriculum' | 'pricing' | 'about' | 'contact' | 'student-portal' | 'admin-portal') => void;
   currentView: string;
   onOpenSubscribe: () => void;
 }
@@ -41,25 +40,21 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView, onOpenS
             onClick={() => handleNav('home')}
             className="flex items-center gap-3.5 cursor-pointer group"
           >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 via-amber-400 to-indigo-600 p-0.5 shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform duration-300">
-              <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center overflow-hidden p-1">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-amber-500 via-amber-400 to-indigo-600 p-0.5 shadow-xl shadow-amber-500/25 group-hover:scale-105 transition-transform duration-300 flex-shrink-0">
+              <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center overflow-hidden p-0.5">
                 <img
                   src="https://static.wixstatic.com/media/9d2cc8_fb65460968104dc5a824c9686eb63ae6~mv2.png/v1/fill/w_109,h_109,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/hartley_logo_badge.png"
                   alt="Hartley Tutoring Logo"
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain scale-110 drop-shadow-md"
                 />
               </div>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-slate-300">
+                <span className="text-xl sm:text-2xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-slate-300">
                   Hartley Tutoring
                 </span>
-                <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] uppercase tracking-wider font-extrabold bg-amber-500/10 text-amber-400 rounded-full border border-amber-500/20">
-                  Math & Science
-                </span>
               </div>
-              <p className="text-xs text-slate-400 font-medium">Cape Town &bull; Online Nationwide</p>
             </div>
           </div>
 
@@ -72,6 +67,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView, onOpenS
               }`}
             >
               Home
+            </button>
+            <button
+              onClick={() => handleNav('services')}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                currentView === 'services' ? 'text-amber-400 bg-slate-900' : 'text-slate-300 hover:text-white hover:bg-slate-900/60'
+              }`}
+            >
+              Services
             </button>
             <button
               onClick={() => handleNav('about')}
@@ -143,7 +146,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView, onOpenS
               onClick={onOpenSubscribe}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
             >
-              <Sparkles className="w-4 h-4 text-slate-950" />
               <span>Enroll / Subscribe</span>
             </button>
 
@@ -287,6 +289,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onNavigate, currentView, onOpenS
             className="w-full text-left px-3 py-2 rounded-lg text-slate-200 font-medium hover:bg-slate-900"
           >
             Home
+          </button>
+          <button
+            onClick={() => handleNav('services')}
+            className="w-full text-left px-3 py-2 rounded-lg text-slate-200 font-medium hover:bg-slate-900"
+          >
+            Services
           </button>
           <button
             onClick={() => handleNav('about')}

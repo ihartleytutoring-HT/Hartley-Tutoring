@@ -24,14 +24,113 @@ export const DEFAULT_PRICING: PackagePrice = {
   month12: 1800,
 };
 
+export const DEFAULT_GRADES: Grade[] = [
+  {
+    id: 'grade-12',
+    name: 'Grade 12 (Matric)',
+    description: 'Final year NSC & IEB preparation, past paper drills, and calculus mastery.',
+    order: 1,
+    active: true,
+  },
+  {
+    id: 'grade-11',
+    name: 'Grade 11',
+    description: 'Crucial foundation year building towards provisional university admission.',
+    order: 2,
+    active: true,
+  },
+  {
+    id: 'grade-10',
+    name: 'Grade 10',
+    description: 'Transition into Senior FET phase for pure Mathematics and Physical Sciences.',
+    order: 3,
+    active: true,
+  },
+  {
+    id: 'grade-9',
+    name: 'Grade 9',
+    description: 'Senior phase preparation and foundation for FET subject choices.',
+    order: 4,
+    active: true,
+  },
+  {
+    id: 'grade-8',
+    name: 'Grade 8',
+    description: 'Transition into high school mathematics and introductory natural sciences.',
+    order: 5,
+    active: true,
+  },
+  {
+    id: 'university',
+    name: 'University & Tertiary STEM',
+    description: 'Engineering Mathematics (N1-N6), Calculus, Physics & Chemistry.',
+    order: 6,
+    active: true,
+  },
+];
+
+export const getDefaultSubjectsForGrade = (gradeId?: string): Subject[] => {
+  const targetGrade = gradeId || 'grade-12';
+  if (targetGrade === 'university') {
+    return [
+      {
+        id: 'uni-eng-math',
+        gradeId: 'university',
+        name: 'Engineering Mathematics (N1–N6)',
+        icon: 'Calculator',
+        description: 'Applied engineering mathematics, differential equations, Laplace transforms and matrix operations.',
+        order: 1,
+      },
+      {
+        id: 'uni-physics',
+        gradeId: 'university',
+        name: 'University Physics & Applied Mechanics',
+        icon: 'Atom',
+        description: 'Classical mechanics, thermodynamics, fluid dynamics and electromagnetism for STEM degrees.',
+        order: 2,
+      },
+    ];
+  }
+
+  return [
+    {
+      id: `${targetGrade}-math`,
+      gradeId: targetGrade,
+      name: 'Mathematics (Pure Maths)',
+      icon: 'Calculator',
+      description: 'Functions, Trigonometry, Euclidean & Analytical Geometry, Differential Calculus & Finance.',
+      order: 1,
+    },
+    {
+      id: `${targetGrade}-physics`,
+      gradeId: targetGrade,
+      name: 'Physical Sciences (Physics & Chemistry)',
+      icon: 'Atom',
+      description: 'Newtonian Mechanics, Work Energy Power, Organic Chemistry, Chemical Equilibrium & Electricity.',
+      order: 2,
+    },
+    {
+      id: `${targetGrade}-ap-math`,
+      gradeId: targetGrade,
+      name: 'AP Maths & Further Studies Maths (FSM)',
+      icon: 'Calculator',
+      description: 'Advanced placement calculus, complex numbers, matrices and mathematical modelling.',
+      order: 3,
+    },
+  ];
+};
+
 // ----------------- GRADES -----------------
 export async function getGrades(): Promise<Grade[]> {
   const collectionName = 'grades';
   try {
     const snap = await getDocs(query(collection(db, collectionName), orderBy('order', 'asc')));
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Grade));
+    const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Grade));
+    if (docs.length > 0) return docs;
+    return DEFAULT_GRADES;
   } catch (error) {
-    handleFirestoreError(error, OperationType.LIST, collectionName);
+    console.warn('Falling back to default grades:', error);
+    return DEFAULT_GRADES;
   }
 }
 
@@ -72,9 +171,12 @@ export async function getSubjects(gradeId?: string): Promise<Subject[]> {
       q = query(collection(db, collectionName), where('gradeId', '==', gradeId), orderBy('order', 'asc'));
     }
     const snap = await getDocs(q);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Subject));
+    const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Subject));
+    if (docs.length > 0) return docs;
+    return getDefaultSubjectsForGrade(gradeId);
   } catch (error) {
-    handleFirestoreError(error, OperationType.LIST, collectionName);
+    console.warn('Falling back to default subjects:', error);
+    return getDefaultSubjectsForGrade(gradeId);
   }
 }
 
@@ -320,6 +422,29 @@ export async function seedInitialCurriculum(): Promise<void> {
     icon: 'Atom',
     description: 'Newtonian Mechanics, Work Energy Power, Organic Chemistry, Chemical Equilibrium, Rates & Electricity.',
     order: 2,
+    createdAt: new Date().toISOString(),
+  });
+
+  const g12ApMathId = 'g12-ap-math';
+  await setDoc(doc(db, 'subjects', g12ApMathId), {
+    id: g12ApMathId,
+    gradeId: grade12Id,
+    name: 'AP Maths & Further Studies Maths (FSM)',
+    icon: 'GraduationCap',
+    description: 'Advanced placement calculus, matrices, complex numbers, and further modeling for academic pursuits.',
+    order: 3,
+    createdAt: new Date().toISOString(),
+  });
+
+  // Subjects for University & Technical (Engineering Maths N1-N6)
+  const uniEngMathId = 'uni-eng-math';
+  await setDoc(doc(db, 'subjects', uniEngMathId), {
+    id: uniEngMathId,
+    gradeId: uniId,
+    name: 'Engineering Mathematics (N1 – N6)',
+    icon: 'Cpu',
+    description: 'N1-N6 Engineering Mathematics tailored for students in technical fields and TVET colleges.',
+    order: 1,
     createdAt: new Date().toISOString(),
   });
 

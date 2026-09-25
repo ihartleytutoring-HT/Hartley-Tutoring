@@ -13,7 +13,6 @@ import {
   CheckCircle,
   Play,
   RotateCcw,
-  Sparkles,
   Award,
   ChevronRight,
   ExternalLink,
@@ -22,6 +21,8 @@ import {
   Clock,
   Check,
   Flame,
+  GraduationCap,
+  ChevronDown,
 } from 'lucide-react';
 
 import { StudentPerformanceChart } from './StudentPerformanceChart';
@@ -376,22 +377,57 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onOpenSubscribe })
           </div>
         )}
 
-        {/* Grade & Subject Selector */}
-        <div className="flex flex-wrap items-center gap-3 mb-6">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Subject:</span>
-          {subjects.map((sub) => (
-            <button
-              key={sub.id}
-              onClick={() => setSelectedSubjectId(sub.id)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                selectedSubjectId === sub.id
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                  : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800'
-              }`}
-            >
-              {sub.name}
-            </button>
-          ))}
+        {/* Grade & Subject Selector Bar */}
+        <div className="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 sm:p-5 mb-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          
+          {/* Grade Dropdown Selector */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+            <label htmlFor="student-grade-select" className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 shrink-0">
+              <GraduationCap className="w-4 h-4 text-amber-400" />
+              <span>Select Grade:</span>
+            </label>
+            <div className="relative min-w-[210px]">
+              <select
+                id="student-grade-select"
+                value={selectedGradeId}
+                onChange={(e) => setSelectedGradeId(e.target.value)}
+                className="w-full appearance-none pl-3.5 pr-10 py-2 rounded-xl bg-slate-950 hover:bg-slate-900 border border-slate-700 hover:border-amber-500/50 text-white font-bold text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition-all cursor-pointer shadow-inner"
+              >
+                {grades.map((grade) => (
+                  <option key={grade.id} value={grade.id} className="bg-slate-950 text-white py-1">
+                    {grade.name}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-amber-400">
+                <ChevronDown className="w-4 h-4" />
+              </div>
+            </div>
+          </div>
+
+          {/* Subject Selector Buttons */}
+          <div className="flex flex-wrap items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-slate-800">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">
+              Subject:
+            </span>
+            {subjects.length === 0 ? (
+              <span className="text-xs text-slate-500 italic">No subjects available</span>
+            ) : (
+              subjects.map((sub) => (
+                <button
+                  key={sub.id}
+                  onClick={() => setSelectedSubjectId(sub.id)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    selectedSubjectId === sub.id
+                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                      : 'bg-slate-950 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  {sub.name}
+                </button>
+              ))
+            )}
+          </div>
         </div>
 
         {/* Visual Summary of Course Completion % and Quiz Performance using Recharts */}
@@ -400,6 +436,10 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onOpenSubscribe })
           allLessons={allSubjectLessons}
           progressMap={progressMap}
           subjectName={subjects.find((s) => s.id === selectedSubjectId)?.name || 'Mathematics & Science'}
+          gradeName={grades.find((g) => g.id === selectedGradeId)?.name}
+          grades={grades}
+          selectedGradeId={selectedGradeId}
+          onSelectGrade={setSelectedGradeId}
           onSelectTopic={(topicId) => setSelectedTopicId(topicId)}
         />
 
@@ -773,7 +813,6 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onOpenSubscribe })
                                   }
                                   className="w-full sm:w-auto px-8 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-amber-500/25 cursor-pointer disabled:opacity-50"
                                 >
-                                  <Sparkles className="w-4 h-4" />
                                   <span>Submit Quiz for 100% Grading</span>
                                 </button>
                               </div>

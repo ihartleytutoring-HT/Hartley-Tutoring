@@ -2,7 +2,7 @@ import React from 'react';
 import { GraduationCap, MapPin, Phone, Mail, MessageCircle, Heart } from 'lucide-react';
 
 interface FooterProps {
-  onNavigate: (view: 'home' | 'curriculum' | 'pricing' | 'about' | 'contact') => void;
+  onNavigate: (view: 'home' | 'services' | 'curriculum' | 'pricing' | 'about' | 'contact') => void;
   onOpenSubscribe: () => void;
 }
 
@@ -47,6 +47,14 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenSubscribe }) =
                   className="hover:text-amber-400 transition-colors"
                 >
                   Home
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => onNavigate('services')}
+                  className="hover:text-amber-400 transition-colors"
+                >
+                  Services Offered
                 </button>
               </li>
               <li>

@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { AboutSection } from './components/AboutSection';
+import { ServicesSection } from './components/ServicesSection';
 import { TestimonialsAndSchoolsSection } from './components/TestimonialsAndSchoolsSection';
 import { CurriculumBrowser } from './components/CurriculumBrowser';
 import { PricingSection } from './components/PricingSection';
@@ -16,6 +17,7 @@ import { seedInitialCurriculum } from './services/curriculumService';
 
 type ViewMode =
   | 'home'
+  | 'services'
   | 'curriculum'
   | 'pricing'
   | 'about'
@@ -71,6 +73,10 @@ function MainApp() {
               onExploreCurriculum={() => handleNavigate('curriculum')}
               onOpenContact={() => handleNavigate('contact')}
             />
+            <ServicesSection
+              onOpenSubscribe={() => handleOpenSubscribe()}
+              onExploreCurriculum={() => handleNavigate('curriculum')}
+            />
             <CurriculumBrowser
               onSelectSubscription={(gradeId, subjectId) =>
                 handleOpenSubscribe(undefined, gradeId, subjectId)
@@ -83,6 +89,19 @@ function MainApp() {
             />
             <ContactSection />
           </>
+        )}
+
+        {currentView === 'services' && (
+          <div className="py-6">
+            <ServicesSection
+              onOpenSubscribe={() => handleOpenSubscribe()}
+              onExploreCurriculum={() => handleNavigate('curriculum')}
+            />
+            <PricingSection
+              onOpenSubscribe={(duration) => handleOpenSubscribe(duration)}
+            />
+            <ContactSection />
+          </div>
         )}
 
         {currentView === 'curriculum' && (

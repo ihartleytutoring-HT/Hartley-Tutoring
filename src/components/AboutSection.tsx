@@ -7,7 +7,6 @@ import {
   CheckCircle,
   BookOpen,
   Target,
-  Sparkles,
   MessageCircle,
   Cpu,
   GraduationCap,
