@@ -302,18 +302,10 @@ export async function deleteLessonItem(itemId: string): Promise<void> {
   }
 }
 
-// ----------------- PACKAGE PRICES (Grade + Subject = Package) -----------------
-export async function getPackagePrice(gradeId?: string, subjectId?: string): Promise<PackagePrice> {
+// ----------------- PACKAGE PRICES (Universal Duration Pricing) -----------------
+export async function getPackagePrice(_gradeId?: string, _subjectId?: string): Promise<PackagePrice> {
   const collectionName = 'packagePrices';
   try {
-    if (gradeId && subjectId) {
-      const specificId = `${gradeId}_${subjectId}`;
-      const docSnap = await getDoc(doc(db, collectionName, specificId));
-      if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() } as PackagePrice;
-      }
-    }
-    // Check global default override or return default
     const defaultSnap = await getDoc(doc(db, collectionName, 'default'));
     if (defaultSnap.exists()) {
       return { id: defaultSnap.id, ...defaultSnap.data() } as PackagePrice;

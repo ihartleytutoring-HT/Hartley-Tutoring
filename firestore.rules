@@ -60,8 +60,8 @@ service cloud.firestore {
 
     // Lessons (Videos, Notes, Quizzes)
     match /lessonItems/{itemId} {
-      // Content items can be read by signed in users or previewed, write restricted to admin
-      allow read: if isSignedIn() || isAdmin();
+      // Content items can be read by public visitors and students for curriculum preview, write restricted to admin
+      allow read: if true;
       allow write: if isAdmin();
     }
 

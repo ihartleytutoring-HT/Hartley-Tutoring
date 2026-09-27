@@ -1,7 +1,15 @@
 import React from 'react';
 import { MessageCircle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export const WhatsAppFloatingButton: React.FC = () => {
+  const { isAdmin } = useAuth();
+
+  // Hide WhatsApp widget when administrator is logged in
+  if (isAdmin) {
+    return null;
+  }
+
   const phoneNumber = '27681432025'; // 068 143 2025 in international format
   const message = encodeURIComponent(
     "Hi Imraan, I'm interested in Hartley Tutoring for Mathematics and Physical Sciences."

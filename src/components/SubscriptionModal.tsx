@@ -10,6 +10,8 @@ import {
   getDefaultSubjectsForGrade,
 } from '../services/curriculumService';
 import { createSubscription } from '../services/subscriptionService';
+import { db } from '../firebase/config';
+import { doc, onSnapshot } from 'firebase/firestore';
 import {
   X,
   Check,
@@ -123,20 +125,27 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
     load();
   }, [isOpen, preSelectedGradeId, preSelectedSubjectId]);
 
-  // Load Dynamic Pricing for chosen Grade + Subject
+  // Load Dynamic Pricing based on duration
   useEffect(() => {
-    async function loadPricing() {
-      if (selectedGradeId && selectedSubjectId) {
-        try {
-          const p = await getPackagePrice(selectedGradeId, selectedSubjectId);
-          setPricing(p);
-        } catch (err) {
-          console.warn('Could not load specific pricing:', err);
-        }
+    getPackagePrice().then(setPricing).catch(() => {});
+
+    const unsub = onSnapshot(doc(db, 'packagePrices', 'default'), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setPricing({
+          id: 'default',
+          month1: Number(data.month1) || 250,
+          month3: Number(data.month3) || 600,
+          month6: Number(data.month6) || 1000,
+          month12: Number(data.month12) || 1800,
+        });
       }
-    }
-    loadPricing();
-  }, [selectedGradeId, selectedSubjectId]);
+    }, (err) => {
+      console.warn('Modal pricing subscription warning:', err);
+    });
+
+    return () => unsub();
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

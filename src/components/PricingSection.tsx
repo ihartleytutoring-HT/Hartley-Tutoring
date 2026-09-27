@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { PackagePrice } from '../types';
 import { getPackagePrice } from '../services/curriculumService';
+import { db } from '../firebase/config';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { Check, Shield, Clock, Zap, ArrowRight } from 'lucide-react';
 
 interface PricingSectionProps {
@@ -17,15 +19,28 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenSubscribe 
   });
 
   useEffect(() => {
-    async function fetchPricing() {
-      try {
-        const p = await getPackagePrice();
-        setPricing(p);
-      } catch (err) {
-        console.warn('Could not load dynamic pricing, using defaults:', err);
+    // Initial fetch
+    getPackagePrice().then(setPricing).catch((err) => {
+      console.warn('Could not load dynamic pricing, using defaults:', err);
+    });
+
+    // Real-time listener: immediately updates when admin modifies prices
+    const unsub = onSnapshot(doc(db, 'packagePrices', 'default'), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setPricing({
+          id: 'default',
+          month1: Number(data.month1) || 250,
+          month3: Number(data.month3) || 600,
+          month6: Number(data.month6) || 1000,
+          month12: Number(data.month12) || 1800,
+        });
       }
-    }
-    fetchPricing();
+    }, (err) => {
+      console.warn('Real-time pricing listener info:', err);
+    });
+
+    return () => unsub();
   }, []);
 
   const tiers = [
@@ -59,7 +74,9 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenSubscribe 
         'Interactive quizzes with 100% pass verification',
         'Past exam paper breakdown recordings',
         'Priority WhatsApp homework assistance',
-        'Save R150 compared to monthly',
+        pricing.month1 * 3 > pricing.month3
+          ? `Save R${pricing.month1 * 3 - pricing.month3} compared to monthly`
+          : 'Flexible term plan',
       ],
     },
     {
@@ -76,7 +93,9 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenSubscribe 
         'Personalized progress tracking',
         'Exam mock papers with full video memorandums',
         'Priority 1-on-1 Q&A sessions',
-        'Save R500 compared to monthly',
+        pricing.month1 * 6 > pricing.month6
+          ? `Save R${pricing.month1 * 6 - pricing.month6} compared to monthly`
+          : 'Semester mastery plan',
       ],
     },
     {
@@ -93,7 +112,9 @@ export const PricingSection: React.FC<PricingSectionProps> = ({ onOpenSubscribe 
         'All future curriculum updates included',
         'Matric Countdown intensive revision pack',
         'Direct mentor access to Imraan Hartley',
-        'Maximum savings (Save R1,200/year)',
+        pricing.month1 * 12 > pricing.month12
+          ? `Maximum savings (Save R${pricing.month1 * 12 - pricing.month12}/year)`
+          : 'Full 365-day pass',
       ],
     },
   ];

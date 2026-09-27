@@ -24,6 +24,7 @@ import {
   saveLessonItem,
   deleteLessonItem,
   getAllPackagePrices,
+  getPackagePrice,
   savePackagePrice,
   DEFAULT_PRICING,
   seedInitialCurriculum,
@@ -48,6 +49,9 @@ import {
   MessageCircle,
   Mail,
   AlertCircle,
+  UploadCloud,
+  FileUp,
+  Loader2,
 } from 'lucide-react';
 
 export const AdminPortal: React.FC = () => {
@@ -97,6 +101,9 @@ export const AdminPortal: React.FC = () => {
   const [lessonVideoDuration, setLessonVideoDuration] = useState<string>('15:00');
   const [lessonNotesContent, setLessonNotesContent] = useState<string>('');
   const [lessonNotesUrl, setLessonNotesUrl] = useState<string>('');
+  const [attachedFileName, setAttachedFileName] = useState<string>('');
+  const [savingLesson, setSavingLesson] = useState<boolean>(false);
+  const [lessonModalError, setLessonModalError] = useState<string>('');
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([
     {
       id: 'q1',
@@ -126,17 +133,25 @@ export const AdminPortal: React.FC = () => {
   const refreshAllData = async () => {
     setLoading(true);
     try {
-      const [gList, pList, progList, enqList] = await Promise.all([
+      const [gList, pList, progList, enqList, defaultPricing] = await Promise.all([
         getGrades(),
         getAllPackagePrices(),
         getAllStudentProgress(),
         getEnquiries(),
+        getPackagePrice(),
       ]);
 
       setGrades(gList);
       setPricingList(pList);
       setAllProgress(progList);
       setEnquiries(enqList);
+
+      if (defaultPricing) {
+        setPriceM1(defaultPricing.month1 ?? 250);
+        setPriceM3(defaultPricing.month3 ?? 600);
+        setPriceM6(defaultPricing.month6 ?? 1000);
+        setPriceM12(defaultPricing.month12 ?? 1800);
+      }
 
       if (gList.length > 0 && !selectedGradeId) {
         setSelectedGradeId(gList[0].id);
@@ -316,10 +331,55 @@ export const AdminPortal: React.FC = () => {
     }
   };
 
+  const handlePdfFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf') {
+      setLessonModalError('Please select a valid PDF file.');
+      return;
+    }
+    if (file.size > 850 * 1024) {
+      setLessonModalError(
+        `PDF is ${(file.size / 1024 / 1024).toFixed(1)}MB. For large documents over 800KB, please upload to Google Drive and paste the share link below so students can download freely.`
+      );
+      return;
+    }
+    setLessonModalError('');
+    setAttachedFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setLessonNotesUrl(reader.result as string);
+      if (!lessonTitle) {
+        setLessonTitle(file.name.replace(/\.[^/.]+$/, ''));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Handle Lesson Item Save (Video, Notes, Quiz)
   const handleSaveLessonItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!lessonTitle.trim() || !selectedTopicId) return;
+    if (!lessonTitle.trim()) {
+      setLessonModalError('Please enter a lesson title.');
+      return;
+    }
+    if (!selectedTopicId) {
+      setLessonModalError('Please select or create a topic first.');
+      return;
+    }
+
+    if (lessonType === 'video' && !lessonVideoUrl.trim()) {
+      setLessonModalError('Please provide a video stream URL (YouTube, Vimeo, Google Drive, or MP4).');
+      return;
+    }
+
+    if (lessonType === 'notes' && !lessonNotesContent.trim() && !lessonNotesUrl.trim()) {
+      setLessonModalError('Please provide notes content or attach a PDF file/link.');
+      return;
+    }
+
+    setSavingLesson(true);
+    setLessonModalError('');
 
     try {
       await saveLessonItem({
@@ -331,7 +391,7 @@ export const AdminPortal: React.FC = () => {
         order: lessonItems.length + 1,
         videoUrl: lessonType === 'video' ? lessonVideoUrl.trim() : undefined,
         videoDuration: lessonType === 'video' ? lessonVideoDuration.trim() : undefined,
-        notesContent: lessonType === 'notes' ? lessonNotesContent : undefined,
+        notesContent: lessonType === 'notes' ? (lessonNotesContent.trim() || 'Attached Study Notes / Worksheet') : undefined,
         notesAttachmentUrl: lessonType === 'notes' ? lessonNotesUrl.trim() : undefined,
         quizQuestions: lessonType === 'quiz' ? quizQuestions : undefined,
         passingScorePercent: 100, // Enforce 100% pass mark for quizzes as requested
@@ -341,11 +401,16 @@ export const AdminPortal: React.FC = () => {
       setLessonTitle('');
       setLessonVideoUrl('');
       setLessonNotesContent('');
+      setLessonNotesUrl('');
+      setAttachedFileName('');
       const updatedLessons = await getLessonItems(selectedTopicId);
       setLessonItems(updatedLessons);
-      showFlash(`Lesson ${lessonType.toUpperCase()} added successfully.`);
+      showFlash(`Lesson ${lessonType.toUpperCase()} saved & published successfully.`);
     } catch (err: any) {
-      alert('Error saving lesson item: ' + err.message);
+      console.error('Error saving lesson item:', err);
+      setLessonModalError('Error saving lesson: ' + (err.message || 'Please check your connection and admin privileges.'));
+    } finally {
+      setSavingLesson(false);
     }
   };
 
@@ -361,30 +426,22 @@ export const AdminPortal: React.FC = () => {
     }
   };
 
-  // Handle Package Price Save
+  // Handle Package Price Save (Universal Duration-Based Pricing)
   const handleSavePricing = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const packageId =
-        selectedGradeId && selectedSubjectId ? `${selectedGradeId}_${selectedSubjectId}` : 'default';
-
-      const gradeObj = grades.find((g) => g.id === selectedGradeId);
-      const subjectObj = subjects.find((s) => s.id === selectedSubjectId);
-
       await savePackagePrice({
-        id: packageId,
-        gradeId: selectedGradeId || undefined,
-        subjectId: selectedSubjectId || undefined,
-        gradeName: gradeObj?.name,
-        subjectName: subjectObj?.name,
+        id: 'default',
         month1: Number(priceM1),
         month3: Number(priceM3),
         month6: Number(priceM6),
         month12: Number(priceM12),
       });
 
-      setPricingSuccessMsg('Package pricing updated in real-time!');
-      setTimeout(() => setPricingSuccessMsg(''), 4000);
+      setPricingSuccessMsg(
+        `Website prices updated! 1M: R${priceM1}, 3M: R${priceM3}, 6M: R${priceM6}, 12M: R${priceM12}. Live across the website.`
+      );
+      setTimeout(() => setPricingSuccessMsg(''), 5000);
       refreshAllData();
     } catch (err: any) {
       alert('Error updating prices: ' + err.message);
@@ -753,36 +810,115 @@ export const AdminPortal: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">Topic:</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-slate-400">Topic:</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTopicTitle('');
+                      setTopicDesc('');
+                      setEditingTopicId(null);
+                      setShowTopicModal(true);
+                    }}
+                    className="text-amber-400 hover:text-amber-300 font-bold text-[11px] flex items-center gap-0.5 ml-2"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>New Topic</span>
+                  </button>
+                </div>
                 <select
                   value={selectedTopicId}
                   onChange={(e) => setSelectedTopicId(e.target.value)}
                   className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white min-w-[200px]"
                 >
-                  {topics.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.title}
-                    </option>
-                  ))}
+                  {topics.length === 0 ? (
+                    <option value="">No topics yet (click + New Topic)</option>
+                  ) : (
+                    topics.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.title}
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
 
-              <div className="ml-auto pt-4">
+              <div className="ml-auto pt-4 flex items-center gap-2">
                 <button
-                  disabled={!selectedTopicId}
+                  type="button"
                   onClick={() => {
+                    setTopicTitle('');
+                    setTopicDesc('');
+                    setEditingTopicId(null);
+                    setShowTopicModal(true);
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold text-xs border border-slate-700 flex items-center gap-1.5 cursor-pointer shadow-md"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Topic</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!selectedTopicId) {
+                      if (topics.length === 0) {
+                        setTopicTitle('');
+                        setTopicDesc('');
+                        setEditingTopicId(null);
+                        setShowTopicModal(true);
+                        showFlash('Please create a topic first to hold your videos and notes.');
+                      } else {
+                        setSelectedTopicId(topics[0].id);
+                        setLessonTitle('');
+                        setLessonVideoUrl('');
+                        setLessonNotesContent('');
+                        setLessonNotesUrl('');
+                        setAttachedFileName('');
+                        setLessonModalError('');
+                        setShowLessonModal(true);
+                      }
+                      return;
+                    }
                     setLessonTitle('');
                     setLessonVideoUrl('');
                     setLessonNotesContent('');
+                    setLessonNotesUrl('');
+                    setAttachedFileName('');
+                    setLessonModalError('');
                     setShowLessonModal(true);
                   }}
-                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-2 cursor-pointer shadow-md disabled:opacity-40"
+                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-2 cursor-pointer shadow-md"
                 >
-                  <Plus className="w-4 h-4" />
+                  <UploadCloud className="w-4 h-4" />
                   <span>Upload Video / Notes / Quiz</span>
                 </button>
               </div>
             </div>
+
+            {/* If no topics exist, show a friendly prompt */}
+            {topics.length === 0 && (
+              <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h4 className="text-amber-300 font-bold text-sm">No topics added for this subject yet</h4>
+                  <p className="text-slate-400 text-xs mt-0.5">
+                    Create a topic (e.g., "Differential Calculus", "Organic Chemistry", "Newton's Laws") to start uploading videos, notes, and quizzes.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTopicTitle('');
+                    setTopicDesc('');
+                    setEditingTopicId(null);
+                    setShowTopicModal(true);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shrink-0 cursor-pointer"
+                >
+                  + Create First Topic
+                </button>
+              </div>
+            )}
 
             {/* List of Lesson Items */}
             <div className="rounded-3xl bg-slate-900 border border-slate-800 p-6 shadow-xl">
@@ -856,13 +992,13 @@ export const AdminPortal: React.FC = () => {
         {activeTab === 'pricing' && (
           <div className="max-w-3xl mx-auto rounded-3xl bg-slate-900 border border-slate-800 p-6 sm:p-8 shadow-2xl">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
                 <DollarSign className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-white">Dynamic Package Pricing (ZAR)</h3>
+                <h3 className="text-xl font-bold text-white">Subscription Duration Pricing (ZAR)</h3>
                 <p className="text-xs text-slate-400">
-                  Configure package prices for Grade + Subject combinations or global defaults.
+                  Set your universal package prices based on duration (1, 3, 6, and 12 Months). These prices apply automatically to all grades and subjects, and update the live website immediately upon saving.
                 </p>
               </div>
             </div>
@@ -875,46 +1011,8 @@ export const AdminPortal: React.FC = () => {
             )}
 
             <form onSubmit={handleSavePricing} className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                    Target Grade (or Leave Global)
-                  </label>
-                  <select
-                    value={selectedGradeId}
-                    onChange={(e) => setSelectedGradeId(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white"
-                  >
-                    <option value="">Global Default Pricing</option>
-                    {grades.map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                    Target Subject (or Leave Global)
-                  </label>
-                  <select
-                    value={selectedSubjectId}
-                    onChange={(e) => setSelectedSubjectId(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white"
-                  >
-                    <option value="">All Subjects in Grade</option>
-                    {subjects.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
               {/* Package Tiers Inputs */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
                   <label className="block text-xs font-semibold text-slate-400 mb-1">
                     1 Month Price (ZAR):
@@ -985,7 +1083,7 @@ export const AdminPortal: React.FC = () => {
                 className="w-full py-3.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-amber-500/20"
               >
                 <Check className="w-4 h-4" />
-                <span>Save Package Pricing in Real-Time</span>
+                <span>Save Package Pricing & Update Website</span>
               </button>
             </form>
           </div>
@@ -1393,18 +1491,38 @@ export const AdminPortal: React.FC = () => {
                   />
                 </div>
 
+                {/* Topic selection in modal */}
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">Target Topic</label>
+                  <select
+                    value={selectedTopicId}
+                    onChange={(e) => setSelectedTopicId(e.target.value)}
+                    required
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white"
+                  >
+                    {topics.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Video specific inputs */}
                 {lessonType === 'video' && (
                   <div className="space-y-3 p-4 rounded-2xl bg-slate-950 border border-slate-800">
+                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 leading-relaxed">
+                      💡 <strong>Where are videos saved?</strong> For smooth 1080p bufferless streaming without hosting fees, upload your lesson to YouTube as <strong>"Unlisted"</strong> (private to your students) or Vimeo / Google Drive, and paste the URL below.
+                    </div>
                     <div>
-                      <label className="block text-slate-400 mb-1">Video Stream URL (YouTube, Vimeo, or MP4)</label>
+                      <label className="block text-slate-400 mb-1">Video Stream URL (YouTube, Vimeo, Google Drive, or MP4)</label>
                       <input
                         type="url"
                         required
                         value={lessonVideoUrl}
                         onChange={(e) => setLessonVideoUrl(e.target.value)}
                         className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-white"
-                        placeholder="https://www.youtube.com/watch?v=..."
+                        placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..."
                       />
                     </div>
                     <div>
@@ -1414,6 +1532,7 @@ export const AdminPortal: React.FC = () => {
                         value={lessonVideoDuration}
                         onChange={(e) => setLessonVideoDuration(e.target.value)}
                         className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-white"
+                        placeholder="18:30"
                       />
                     </div>
                   </div>
@@ -1423,25 +1542,54 @@ export const AdminPortal: React.FC = () => {
                 {lessonType === 'notes' && (
                   <div className="space-y-3 p-4 rounded-2xl bg-slate-950 border border-slate-800">
                     <div>
-                      <label className="block text-slate-400 mb-1">Study Guide / Notes Content</label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-slate-400">Study Guide / Notes Content</label>
+                        <span className="text-[10px] text-slate-500">Markdown & formulas</span>
+                      </div>
                       <textarea
-                        rows={6}
-                        required
+                        rows={5}
                         value={lessonNotesContent}
                         onChange={(e) => setLessonNotesContent(e.target.value)}
                         className="w-full bg-slate-900 border border-slate-800 rounded-lg p-3 text-white font-mono text-xs"
-                        placeholder="### Important Formulas & Exam Traps..."
+                        placeholder="Type or paste formula sheet notes, exam traps, key steps, or attach a PDF document below..."
                       />
                     </div>
-                    <div>
-                      <label className="block text-slate-400 mb-1">Optional PDF Attachment / Link</label>
-                      <input
-                        type="url"
-                        value={lessonNotesUrl}
-                        onChange={(e) => setLessonNotesUrl(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-white"
-                        placeholder="https://.../notes.pdf"
-                      />
+
+                    <div className="pt-2 border-t border-slate-800/80">
+                      <label className="block text-slate-400 mb-1.5 font-medium">Attach PDF Worksheet or Notes Document</label>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          <label className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold cursor-pointer border border-slate-700 flex items-center gap-2 transition-colors">
+                            <FileUp className="w-4 h-4" />
+                            <span>Select PDF File</span>
+                            <input
+                              type="file"
+                              accept="application/pdf"
+                              onChange={handlePdfFileSelect}
+                              className="hidden"
+                            />
+                          </label>
+                          {attachedFileName && (
+                            <span className="text-emerald-400 font-semibold truncate max-w-xs flex items-center gap-1">
+                              <Check className="w-3.5 h-3.5 shrink-0" />
+                              {attachedFileName}
+                            </span>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] text-slate-500 mb-1">
+                            Or paste a Google Drive, Dropbox, or PDF link:
+                          </label>
+                          <input
+                            type="url"
+                            value={lessonNotesUrl}
+                            onChange={(e) => setLessonNotesUrl(e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-white"
+                            placeholder="https://drive.google.com/file/d/.../view or https://.../notes.pdf"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1543,6 +1691,14 @@ export const AdminPortal: React.FC = () => {
                   </div>
                 )}
 
+                {/* Error Banner inside modal */}
+                {lessonModalError && (
+                  <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{lessonModalError}</span>
+                  </div>
+                )}
+
                 <div className="flex justify-end gap-2 pt-4 border-t border-slate-800">
                   <button
                     type="button"
@@ -1553,9 +1709,20 @@ export const AdminPortal: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2.5 rounded-xl bg-amber-500 text-slate-950 font-bold"
+                    disabled={savingLesson}
+                    className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold flex items-center gap-2 cursor-pointer disabled:opacity-50"
                   >
-                    Save & Upload
+                    {savingLesson ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Saving to Database...</span>
+                      </>
+                    ) : (
+                      <>
+                        <UploadCloud className="w-4 h-4" />
+                        <span>Save & Upload</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </form>

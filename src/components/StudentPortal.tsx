@@ -27,6 +27,53 @@ import {
 
 import { StudentPerformanceChart } from './StudentPerformanceChart';
 
+function getEmbedVideoUrl(url?: string): { isEmbed: boolean; isDirectVideo: boolean; url: string } {
+  if (!url) return { isEmbed: false, isDirectVideo: false, url: '' };
+  const trimmed = url.trim();
+
+  // Direct MP4 / WebM
+  if (trimmed.match(/\.(mp4|webm|ogg)($|\?)/i)) {
+    return { isEmbed: false, isDirectVideo: true, url: trimmed };
+  }
+
+  // YouTube watch: https://www.youtube.com/watch?v=ID
+  if (trimmed.includes('youtube.com/watch')) {
+    const match = trimmed.match(/[?&]v=([^&]+)/);
+    if (match) return { isEmbed: true, isDirectVideo: false, url: `https://www.youtube.com/embed/${match[1]}?rel=0&modestbranding=1` };
+  }
+
+  // YouTube short link: https://youtu.be/ID
+  if (trimmed.includes('youtu.be/')) {
+    const id = trimmed.split('youtu.be/')[1]?.split(/[?&#]/)[0];
+    if (id) return { isEmbed: true, isDirectVideo: false, url: `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1` };
+  }
+
+  // YouTube shorts: https://www.youtube.com/shorts/ID
+  if (trimmed.includes('youtube.com/shorts/')) {
+    const id = trimmed.split('youtube.com/shorts/')[1]?.split(/[?&#]/)[0];
+    if (id) return { isEmbed: true, isDirectVideo: false, url: `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1` };
+  }
+
+  // Vimeo: https://vimeo.com/ID
+  if (trimmed.includes('vimeo.com/')) {
+    const id = trimmed.split('vimeo.com/')[1]?.split(/[?&#]/)[0];
+    if (id) return { isEmbed: true, isDirectVideo: false, url: `https://player.vimeo.com/video/${id}` };
+  }
+
+  // Google Drive: https://drive.google.com/file/d/ID/view
+  if (trimmed.includes('drive.google.com/file/d/')) {
+    const match = trimmed.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+    if (match) return { isEmbed: true, isDirectVideo: false, url: `https://drive.google.com/file/d/${match[1]}/preview` };
+  }
+
+  // Default embed if already an embed link
+  if (trimmed.includes('/embed/')) {
+    return { isEmbed: true, isDirectVideo: false, url: trimmed };
+  }
+
+  return { isEmbed: false, isDirectVideo: false, url: trimmed };
+}
+
 interface StudentPortalProps {
   onOpenSubscribe: () => void;
 }
@@ -566,42 +613,46 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onOpenSubscribe })
                   </div>
 
                   {/* 1. TYPE: VIDEO LESSON */}
-                  {activeLesson.type === 'video' && (
-                    <div className="space-y-6">
-                      <div className="relative aspect-video rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 shadow-xl">
-                        {activeLesson.videoUrl?.includes('youtube.com') || activeLesson.videoUrl?.includes('youtu.be') ? (
-                          <iframe
-                            src={
-                              activeLesson.videoUrl.includes('watch?v=')
-                                ? activeLesson.videoUrl.replace('watch?v=', 'embed/')
-                                : activeLesson.videoUrl
-                            }
-                            title={activeLesson.title}
-                            className="w-full h-full"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                          />
-                        ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center text-slate-400">
-                            <Play className="w-12 h-12 text-amber-400 mb-3" />
-                            <p className="font-semibold text-white">Video Lesson Stream</p>
-                            <p className="text-xs text-slate-400 mt-1 max-w-sm">
-                              Watch Imraan Hartley's walkthrough of the topic and key exam strategies.
-                            </p>
-                            {activeLesson.videoUrl && (
-                              <a
-                                href={activeLesson.videoUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="mt-4 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-white flex items-center gap-1.5"
-                              >
-                                <span>Open Video Link</span>
-                                <ExternalLink className="w-3.5 h-3.5" />
-                              </a>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                  {activeLesson.type === 'video' && (() => {
+                    const videoInfo = getEmbedVideoUrl(activeLesson.videoUrl);
+                    return (
+                      <div className="space-y-6">
+                        <div className="relative aspect-video rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 shadow-xl">
+                          {videoInfo.isEmbed ? (
+                            <iframe
+                              src={videoInfo.url}
+                              title={activeLesson.title}
+                              className="w-full h-full"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            />
+                          ) : videoInfo.isDirectVideo ? (
+                            <video
+                              src={videoInfo.url}
+                              controls
+                              className="w-full h-full object-contain bg-black"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center text-slate-400">
+                              <Play className="w-12 h-12 text-amber-400 mb-3" />
+                              <p className="font-semibold text-white">Video Lesson Stream</p>
+                              <p className="text-xs text-slate-400 mt-1 max-w-sm">
+                                Watch Imraan Hartley's walkthrough of the topic and key exam strategies.
+                              </p>
+                              {activeLesson.videoUrl && (
+                                <a
+                                  href={activeLesson.videoUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="mt-4 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-white flex items-center gap-1.5"
+                                >
+                                  <span>Open Video Link</span>
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                </a>
+                              )}
+                            </div>
+                          )}
+                        </div>
 
                       {/* Video actions */}
                       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-slate-950 border border-slate-800/80">
@@ -626,8 +677,9 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({ onOpenSubscribe })
                           </span>
                         </button>
                       </div>
-                    </div>
-                  )}
+                      </div>
+                    );
+                  })()}
 
                   {/* 2. TYPE: NOTES & SUMMARY */}
                   {activeLesson.type === 'notes' && (
